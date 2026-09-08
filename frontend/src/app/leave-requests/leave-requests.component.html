@@ -1,6 +1,65 @@
 <h2>Leave Requests</h2>
 
-<!-- TODO (candidate): add the "new request" form here, with validation. -->
+<form class="leave-form" [formGroup]="form" (ngSubmit)="submit()">
+  <h3>New leave request</h3>
+
+  <div class="field">
+    <label for="employeeId">Employee</label>
+    <select id="employeeId" formControlName="employeeId">
+      <option [ngValue]="null">Select employee</option>
+      <option *ngFor="let e of employees" [ngValue]="e.id">{{ e.name }}</option>
+    </select>
+    <p class="error" *ngIf="form.controls.employeeId.touched && form.controls.employeeId.hasError('required')">
+      Please select an employee.
+    </p>
+  </div>
+
+  <div class="field">
+    <label for="type">Leave type</label>
+    <select id="type" formControlName="type">
+      <option [ngValue]="null">Select leave type</option>
+      <option [ngValue]="0">Vacation</option>
+      <option [ngValue]="1">Sick</option>
+      <option [ngValue]="2">Unpaid</option>
+    </select>
+    <p class="error" *ngIf="form.controls.type.touched && form.controls.type.hasError('required')">
+      Leave type is required.
+    </p>
+  </div>
+
+  <div class="field">
+    <label for="startDate">Start date</label>
+    <input id="startDate" type="date" formControlName="startDate" />
+    <p class="error" *ngIf="form.controls.startDate.touched && form.controls.startDate.hasError('required')">
+      Start date is required.
+    </p>
+    <p class="error" *ngIf="form.touched && form.hasError('startAfterEnd')">
+      Start date cannot be after end date.
+    </p>
+  </div>
+
+  <div class="field">
+    <label for="endDate">End date</label>
+    <input id="endDate" type="date" formControlName="endDate" />
+    <p class="error" *ngIf="form.controls.endDate.touched && form.controls.endDate.hasError('required')">
+      End date is required.
+    </p>
+  </div>
+
+  <div class="field">
+    <label>Days</label>
+    <p class="days">{{ days === null ? '—' : days }}</p>
+    <p class="error" *ngIf="days !== null && days < 0">
+      Days cannot be negative.
+    </p>
+  </div>
+
+  <p class="error" *ngIf="createError">{{ createError }}</p>
+
+  <button type="submit" [disabled]="form.invalid || submitting || (days !== null && days < 0)">
+    {{ submitting ? 'Submitting...' : 'Submit request' }}
+  </button>
+</form>
 
 <div *ngIf="loading">Loading...</div>
 

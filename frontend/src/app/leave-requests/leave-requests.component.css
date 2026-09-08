@@ -9,3 +9,48 @@ button {
 button:hover {
   background: #186faf;
 }
+
+button:disabled {
+  background: #9fb3c8;
+  cursor: not-allowed;
+}
+
+.leave-form {
+  background: #fff;
+  border: 1px solid #d9e2ec;
+  border-radius: 6px;
+  padding: 16px;
+  margin: 0 0 24px;
+  max-width: 480px;
+}
+
+.leave-form h3 {
+  margin: 0 0 12px;
+}
+
+.field {
+  margin-bottom: 12px;
+}
+
+.field label {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+
+.field select,
+.field input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 8px;
+}
+
+.days {
+  margin: 0;
+}
+
+.error {
+  color: #b91c1c;
+  margin: 4px 0 0;
+  font-size: 0.9rem;
+}
