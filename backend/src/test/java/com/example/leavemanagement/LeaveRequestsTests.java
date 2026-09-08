@@ -20,6 +20,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -185,6 +186,30 @@ class LeaveRequestsTests {
         assertEquals("Not enough vacation balance", secondResult.getBody());
         assertEquals(LeaveStatus.APPROVED, leaveRequests.findById(first.getId()).orElseThrow().getStatus());
         assertEquals(LeaveStatus.PENDING, leaveRequests.findById(second.getId()).orElseThrow().getStatus());
+    }
+
+    @Test
+    void search_InputWithApostrophe_IsBoundAndDoesNotInjectSql() {
+        Employee obrien = employees.save(employee("O'Brien", 20));
+        Employee other = employees.save(employee("Other Emp", 20));
+        LeaveRequest obrienRequest = leaveRequests.save(vacation(obrien.getId(), LeaveStatus.PENDING, 2,
+                LocalDate.of(2026, 5, 1), LocalDate.of(2026, 5, 2)));
+        LeaveRequest otherRequest = leaveRequests.save(vacation(other.getId(), LeaveStatus.PENDING, 2,
+                LocalDate.of(2026, 5, 3), LocalDate.of(2026, 5, 4)));
+
+        ResponseEntity<List<LeaveRequest>> byName = controller.search("O'Brien");
+        assertEquals(HttpStatus.OK, byName.getStatusCode());
+        List<LeaveRequest> named = byName.getBody();
+        assertNotNull(named);
+        assertEquals(1, named.size());
+        assertEquals(obrienRequest.getId(), named.get(0).getId());
+
+        ResponseEntity<List<LeaveRequest>> injectionAttempt = controller.search("' OR '1'='1");
+        assertEquals(HttpStatus.OK, injectionAttempt.getStatusCode());
+        List<LeaveRequest> injected = injectionAttempt.getBody();
+        assertNotNull(injected);
+        assertTrue(injected.stream().noneMatch(r -> r.getId().equals(otherRequest.getId())));
+        assertTrue(injected.stream().noneMatch(r -> r.getId().equals(obrienRequest.getId())));
     }
 
     private static Employee employee(String name, int annualQuota) {

@@ -39,15 +39,7 @@ public class LeaveRequestService {
     }
 
     public List<LeaveRequest> search(String name) {
-        String sql = "SELECT * FROM leave_requests WHERE employee_id IN " +
-                "(SELECT id FROM employees WHERE name LIKE '%" + name + "%')";
-
-        @SuppressWarnings("unchecked")
-        List<LeaveRequest> results = entityManager
-                .createNativeQuery(sql, LeaveRequest.class)
-                .getResultList();
-
-        return results;
+        return leaveRequestRepository.findByEmployee_NameContaining(name);
     }
 
     @Transactional
