@@ -54,3 +54,9 @@ button:disabled {
   margin: 4px 0 0;
   font-size: 0.9rem;
 }
+
+.success {
+  color: #166534;
+  margin: 0 0 12px;
+  font-size: 0.95rem;
+}

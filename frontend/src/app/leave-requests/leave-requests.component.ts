@@ -28,6 +28,9 @@ export class LeaveRequestsComponent implements OnInit {
   loading = false;
   submitting = false;
   createError = '';
+  approvingIds = new Set<number>();
+  approveSuccess = '';
+  approveError = '';
 
   form = this.fb.group({
     employeeId: [null as number | null, Validators.required],
@@ -95,12 +98,34 @@ export class LeaveRequestsComponent implements OnInit {
     });
   }
 
-  // Wired up by the candidate as part of the assignment.
+  isApproving(id: number): boolean {
+    return this.approvingIds.has(id);
+  }
+
   approve(id: number): void {
-    // TODO (candidate): call POST /api/leave-requests/{id}/approve
-    // and handle loading / error / success without a generic alert.
-    this.http.post<any>(this.apiUrl + '/' + id + '/approve', {}).subscribe(() => {
-      this.load();
+    if (this.approvingIds.has(id)) {
+      return;
+    }
+
+    this.approvingIds = new Set(this.approvingIds).add(id);
+    this.approveSuccess = '';
+    this.approveError = '';
+
+    this.http.post<any>(this.apiUrl + '/' + id + '/approve', {}).subscribe({
+      next: (updated) => {
+        this.requests = this.requests.map((r) => {
+          if (r.id !== id) {
+            return r;
+          }
+          return { ...r, ...updated, employee: updated.employee ?? r.employee };
+        });
+        this.approveSuccess = 'Leave request #' + id + ' was approved.';
+        this.clearApproving(id);
+      },
+      error: (err) => {
+        this.approveError = this.approveErrorMessage(err);
+        this.clearApproving(id);
+      }
     });
   }
 
@@ -114,6 +139,25 @@ export class LeaveRequestsComponent implements OnInit {
     if (status == 0) return 'Pending';
     if (status == 1) return 'Approved';
     return 'Rejected';
+  }
+
+  private clearApproving(id: number): void {
+    const next = new Set(this.approvingIds);
+    next.delete(id);
+    this.approvingIds = next;
+  }
+
+  private approveErrorMessage(err: any): string {
+    if (typeof err.error === 'string' && err.error) {
+      return err.error;
+    }
+    if (err.status === 409) {
+      return 'This leave request cannot be approved.';
+    }
+    if (err.status === 404) {
+      return 'Leave request not found.';
+    }
+    return 'Could not approve the leave request.';
   }
 
   private inclusiveDays(start: string, end: string): number {
