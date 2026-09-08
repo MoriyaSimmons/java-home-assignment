@@ -102,4 +102,107 @@ class LeaveRequestsTests {
         assertEquals("Not enough vacation balance", result.getBody());
         assertEquals(before, leaveRequests.count());
     }
+
+    @Test
+    void approve_UnknownId_Returns404() {
+        ResponseEntity<?> result = controller.approve(999_999L);
+
+        assertEquals(HttpStatus.NOT_FOUND, result.getStatusCode());
+        assertEquals("Leave request not found", result.getBody());
+    }
+
+    @Test
+    void approve_AlreadyApproved_Returns409() {
+        Employee emp = employees.save(employee("Already Approved Emp", 20));
+        LeaveRequest request = leaveRequests.save(vacation(emp.getId(), LeaveStatus.APPROVED, 3,
+                LocalDate.of(2026, 4, 1), LocalDate.of(2026, 4, 3)));
+
+        ResponseEntity<?> result = controller.approve(request.getId());
+
+        assertEquals(HttpStatus.CONFLICT, result.getStatusCode());
+        assertEquals("Leave request is already approved", result.getBody());
+        assertEquals(LeaveStatus.APPROVED, leaveRequests.findById(request.getId()).orElseThrow().getStatus());
+    }
+
+    @Test
+    void approve_Rejected_Returns409() {
+        Employee emp = employees.save(employee("Rejected Emp", 20));
+        LeaveRequest request = leaveRequests.save(vacation(emp.getId(), LeaveStatus.REJECTED, 3,
+                LocalDate.of(2026, 4, 1), LocalDate.of(2026, 4, 3)));
+
+        ResponseEntity<?> result = controller.approve(request.getId());
+
+        assertEquals(HttpStatus.CONFLICT, result.getStatusCode());
+        assertEquals("Leave request is already rejected", result.getBody());
+        assertEquals(LeaveStatus.REJECTED, leaveRequests.findById(request.getId()).orElseThrow().getStatus());
+    }
+
+    @Test
+    void approve_PendingVacationWithinRemainingQuota_Succeeds() {
+        Employee emp = employees.save(employee("Remaining Quota Emp", 20));
+        leaveRequests.save(vacation(emp.getId(), LeaveStatus.APPROVED, 18,
+                LocalDate.of(2026, 1, 6), LocalDate.of(2026, 1, 23)));
+        LeaveRequest pending = leaveRequests.save(vacation(emp.getId(), LeaveStatus.PENDING, 2,
+                LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 2)));
+
+        ResponseEntity<?> result = controller.approve(pending.getId());
+
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+        LeaveRequest body = (LeaveRequest) result.getBody();
+        assertNotNull(body);
+        assertEquals(LeaveStatus.APPROVED, body.getStatus());
+        assertEquals(LeaveStatus.APPROVED, leaveRequests.findById(pending.getId()).orElseThrow().getStatus());
+    }
+
+    @Test
+    void approve_PendingVacationExceedingRemainingQuota_Returns409AndRemainsPending() {
+        Employee emp = employees.save(employee("Over Quota Emp", 20));
+        leaveRequests.save(vacation(emp.getId(), LeaveStatus.APPROVED, 18,
+                LocalDate.of(2026, 1, 6), LocalDate.of(2026, 1, 23)));
+        LeaveRequest pending = leaveRequests.save(vacation(emp.getId(), LeaveStatus.PENDING, 3,
+                LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 3)));
+
+        ResponseEntity<?> result = controller.approve(pending.getId());
+
+        assertEquals(HttpStatus.CONFLICT, result.getStatusCode());
+        assertEquals("Not enough vacation balance", result.getBody());
+        assertEquals(LeaveStatus.PENDING, leaveRequests.findById(pending.getId()).orElseThrow().getStatus());
+    }
+
+    @Test
+    void approve_TwoPendingVacationsTogetherExceedQuota_SecondReturns409() {
+        Employee emp = employees.save(employee("Concurrent Quota Emp", 20));
+        LeaveRequest first = leaveRequests.save(vacation(emp.getId(), LeaveStatus.PENDING, 15,
+                LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 15)));
+        LeaveRequest second = leaveRequests.save(vacation(emp.getId(), LeaveStatus.PENDING, 15,
+                LocalDate.of(2026, 4, 1), LocalDate.of(2026, 4, 15)));
+
+        ResponseEntity<?> firstResult = controller.approve(first.getId());
+        ResponseEntity<?> secondResult = controller.approve(second.getId());
+
+        assertEquals(HttpStatus.OK, firstResult.getStatusCode());
+        assertEquals(HttpStatus.CONFLICT, secondResult.getStatusCode());
+        assertEquals("Not enough vacation balance", secondResult.getBody());
+        assertEquals(LeaveStatus.APPROVED, leaveRequests.findById(first.getId()).orElseThrow().getStatus());
+        assertEquals(LeaveStatus.PENDING, leaveRequests.findById(second.getId()).orElseThrow().getStatus());
+    }
+
+    private static Employee employee(String name, int annualQuota) {
+        Employee emp = new Employee();
+        emp.setName(name);
+        emp.setAnnualQuota(annualQuota);
+        return emp;
+    }
+
+    private static LeaveRequest vacation(Long employeeId, LeaveStatus status, int days,
+                                         LocalDate startDate, LocalDate endDate) {
+        LeaveRequest request = new LeaveRequest();
+        request.setEmployeeId(employeeId);
+        request.setType(LeaveType.VACATION);
+        request.setStartDate(startDate);
+        request.setEndDate(endDate);
+        request.setDays(days);
+        request.setStatus(status);
+        return request;
+    }
 }

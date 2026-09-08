@@ -9,6 +9,7 @@ import com.example.leavemanagement.repository.EmployeeRepository;
 import com.example.leavemanagement.repository.LeaveRequestRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -94,6 +95,51 @@ public class LeaveRequestService {
 
         leaveRequestRepository.save(request);
 
+        return ResponseEntity.ok(request);
+    }
+
+    @Transactional
+    public ResponseEntity<?> approve(Long id) {
+        LeaveRequest request = leaveRequestRepository.findById(id).orElse(null);
+        if (request == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Leave request not found");
+        }
+        if (request.getStatus() == LeaveStatus.APPROVED) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Leave request is already approved");
+        }
+        if (request.getStatus() == LeaveStatus.REJECTED) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Leave request is already rejected");
+        }
+
+        Employee employee = employeeRepository.findByIdForUpdate(request.getEmployeeId()).orElse(null);
+        if (employee == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Employee not found");
+        }
+
+        entityManager.refresh(request);
+        if (request.getStatus() == LeaveStatus.APPROVED) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Leave request is already approved");
+        }
+        if (request.getStatus() == LeaveStatus.REJECTED) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Leave request is already rejected");
+        }
+        if (request.getStatus() != LeaveStatus.PENDING) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Leave request cannot be approved");
+        }
+
+        if (request.getType() == LeaveType.VACATION) {
+            int used = leaveRequestRepository
+                    .findByEmployeeIdAndTypeAndStatus(request.getEmployeeId(), LeaveType.VACATION, LeaveStatus.APPROVED)
+                    .stream()
+                    .mapToInt(LeaveRequest::getDays)
+                    .sum();
+            if (used + request.getDays() > employee.getAnnualQuota()) {
+                return ResponseEntity.status(HttpStatus.CONFLICT).body("Not enough vacation balance");
+            }
+        }
+
+        request.setStatus(LeaveStatus.APPROVED);
+        leaveRequestRepository.save(request);
         return ResponseEntity.ok(request);
     }
 }
