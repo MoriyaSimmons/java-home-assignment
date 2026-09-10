@@ -1,12 +1,12 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { Employee } from '../models/leave-request.model';
 
 function startNotAfterEnd(group: AbstractControl): ValidationErrors | null {
   const start = group.get('startDate')?.value;
-  const end = group.get('endDate')?.value;/
+  const end = group.get('endDate')?.value;
   if (!start || !end) {
     return null;
   }
@@ -32,17 +32,19 @@ export class LeaveRequestsComponent implements OnInit {
   approveSuccess = '';
   approveError = '';
 
-  form = this.fb.group({
-    employeeId: [null as number | null, Validators.required],
-    type: [null as number | null, Validators.required],
-    startDate: ['', Validators.required],
-    endDate: ['', Validators.required]
-  }, { validators: startNotAfterEnd });
+  form: FormGroup;
 
   private apiUrl = 'http://localhost:5080/api/leave-requests';
   private employeesUrl = 'http://localhost:5080/api/employees';
 
-  constructor(private http: HttpClient, private fb: FormBuilder) {}
+  constructor(private http: HttpClient, private fb: FormBuilder) {
+    this.form = this.fb.group({
+      employeeId: [null as number | null, Validators.required],
+      type: [null as number | null, Validators.required],
+      startDate: ['', Validators.required],
+      endDate: ['', Validators.required]
+    }, { validators: startNotAfterEnd });
+  }
 
   ngOnInit(): void {
     this.load();

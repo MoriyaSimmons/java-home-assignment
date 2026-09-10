@@ -9,7 +9,7 @@
       <option [ngValue]="null">Select employee</option>
       <option *ngFor="let e of employees" [ngValue]="e.id">{{ e.name }}</option>
     </select>
-    <p class="error" *ngIf="form.controls.employeeId.touched && form.controls.employeeId.hasError('required')">
+    <p class="error" *ngIf="form.controls['employeeId'].touched && form.controls['employeeId'].hasError('required')">
       Please select an employee.
     </p>
   </div>
@@ -22,7 +22,7 @@
       <option [ngValue]="1">Sick</option>
       <option [ngValue]="2">Unpaid</option>
     </select>
-    <p class="error" *ngIf="form.controls.type.touched && form.controls.type.hasError('required')">
+    <p class="error" *ngIf="form.controls['type'].touched && form.controls['type'].hasError('required')">
       Leave type is required.
     </p>
   </div>
@@ -30,7 +30,7 @@
   <div class="field">
     <label for="startDate">Start date</label>
     <input id="startDate" type="date" formControlName="startDate" />
-    <p class="error" *ngIf="form.controls.startDate.touched && form.controls.startDate.hasError('required')">
+    <p class="error" *ngIf="form.controls['startDate'].touched && form.controls['startDate'].hasError('required')">
       Start date is required.
     </p>
     <p class="error" *ngIf="form.touched && form.hasError('startAfterEnd')">
@@ -41,7 +41,7 @@
   <div class="field">
     <label for="endDate">End date</label>
     <input id="endDate" type="date" formControlName="endDate" />
-    <p class="error" *ngIf="form.controls.endDate.touched && form.controls.endDate.hasError('required')">
+    <p class="error" *ngIf="form.controls['endDate'].touched && form.controls['endDate'].hasError('required')">
       End date is required.
     </p>
   </div>
