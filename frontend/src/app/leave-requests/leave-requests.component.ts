@@ -6,7 +6,7 @@ import { Employee } from '../models/leave-request.model';
 
 function startNotAfterEnd(group: AbstractControl): ValidationErrors | null {
   const start = group.get('startDate')?.value;
-  const end = group.get('endDate')?.value;
+  const end = group.get('endDate')?.value;/
   if (!start || !end) {
     return null;
   }
